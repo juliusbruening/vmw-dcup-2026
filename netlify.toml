@@ -1,0 +1,28 @@
+[build]
+  publish    = "public"
+  functions  = "netlify/functions"
+
+# Scheduled functions are configured inline via `export const config` in the
+# function files themselves (see netlify/functions/scrape.mjs). No cron here.
+
+# Statics & Cache
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Friendly URLs for our functions
+[[redirects]]
+  from   = "/api/data"
+  to     = "/.netlify/functions/data"
+  status = 200
+
+[[redirects]]
+  from   = "/api/admin/*"
+  to     = "/.netlify/functions/admin/:splat"
+  status = 200

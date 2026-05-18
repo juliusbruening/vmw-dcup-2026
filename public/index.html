@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#C8102E">
+  <title>VMW Deutschland Cup 2026</title>
+  <link rel="icon" href="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png">
+  <link rel="apple-touch-icon" href="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container">
+  <header class="app">
+    <div class="inner">
+      <img class="logo" src="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png" alt="VMW" onerror="this.style.display='none'">
+      <div class="title">VMW Live<small>Deutschland Cup 2026 · 23.–25. Mai</small></div>
+      <div class="updated" id="updatedBox" aria-label="Letzter Datenstand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <span id="updatedText">…</span>
+      </div>
+      <button class="menu" onclick="openModal('admin')" aria-label="Trainer-Login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="panel active" id="panel-live">
+    <h2>VMW Live</h2>
+    <div class="day-switch" id="liveDaySwitch">
+      <button data-day="1" class="active">Sa <small>23. Mai</small></button>
+      <button data-day="2">So <small>24. Mai</small></button>
+      <button data-day="3">Mo <small>25. Mai</small></button>
+    </div>
+    <h3 class="section"><span class="pulse-dot"></span> Läuft gerade <span class="count" id="liveNowCount">0</span></h3>
+    <div id="liveNowList"></div>
+    <h3 class="section">⏭ Als Nächstes (Spielen) <span class="count" id="liveNextCount">0</span></h3>
+    <div id="liveNextList"></div>
+    <button class="more-btn" id="liveNextMore" hidden>▾ Weitere anzeigen</button>
+    <h3 class="section">🟠 Als Nächstes (Schiri) <span class="count" id="liveRefCount">0</span></h3>
+    <div id="liveRefList"></div>
+    <button class="more-btn" id="liveRefMore" hidden>▾ Weitere anzeigen</button>
+    <h3 class="section">✅ Heute beendet <span class="count" id="liveDoneCount">0</span></h3>
+    <div id="liveDoneList"></div>
+    <button class="more-btn" id="liveDoneMore" hidden>▾ Weitere anzeigen</button>
+  </section>
+
+  <section class="panel" id="panel-plan">
+    <h2>Spielplan</h2>
+    <div class="day-switch" id="planDaySwitch">
+      <button data-day="1" class="active">Sa <small>23. Mai</small></button>
+      <button data-day="2">So <small>24. Mai</small></button>
+      <button data-day="3">Mo <small>25. Mai</small></button>
+    </div>
+    <div class="scope-row">
+      <div class="seg" id="scopeSeg">
+        <button data-scope="vmw" class="active">Nur VMW</button>
+        <button data-scope="all">Alle Spiele</button>
+      </div>
+    </div>
+    <div class="pills" id="planTeamPills">
+      <button data-team="all" class="active">Alle Teams</button>
+      <button data-team="U14">U14</button>
+      <button data-team="U16">U16</button>
+      <button data-team="U21">U21</button>
+      <button data-team="Women">Damen</button>
+      <button data-team="Men2">Herren</button>
+    </div>
+    <div class="pills" id="planDivisionPills" style="display:none">
+      <button data-div="all" class="active">Alle Klassen</button>
+      <button data-div="U14">U14</button>
+      <button data-div="U16">U16</button>
+      <button data-div="U21">U21</button>
+      <button data-div="Women">Damen</button>
+      <button data-div="Men1">Herren 1</button>
+      <button data-div="Men2">Herren 2</button>
+    </div>
+    <div id="planList"></div>
+  </section>
+
+  <section class="panel" id="panel-teams">
+    <h2>Teams</h2>
+    <div class="pills" id="teamPills">
+      <button data-team="U14">U14</button>
+      <button data-team="U16">U16</button>
+      <button data-team="U21">U21</button>
+      <button data-team="Women" class="active">Damen</button>
+      <button data-team="Men2">Herren</button>
+    </div>
+    <div id="teamDetail"></div>
+  </section>
+
+  <section class="panel" id="panel-haus">
+    <h2>Hausliga</h2>
+    <p class="intro">
+      Unser <strong>vereinsinterner Wettkampf</strong> zwischen den 5 VMW-Mannschaften am Turnier: Wer holt anteilig am meisten?
+      <br><br>
+      <strong>Punkte:</strong> 3 für einen Sieg, 1 fürs Unentschieden, 0 für eine Niederlage.
+      <strong>Sortierung nach durchschnittlich geholten Punkten pro Spiel (PPG)</strong>, weil die Teams unterschiedlich viele Spiele bestreiten.
+    </p>
+    <h3 class="section">🏆 Tabelle (PPG)</h3>
+    <div class="table-wrap">
+      <table class="t" id="hausligaTable">
+        <thead><tr><th class="rank">#</th><th class="team-cell">Team</th><th>Sp</th><th>S</th><th>U</th><th>N</th><th>Tore</th><th>Diff</th><th>Pkt</th><th>PPG</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3 class="section">⚽ Torjäger:innen <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-3);margin-left:4px">vereinsweit</span></h3>
+    <div class="pills" id="scorerPills">
+      <button data-team="all" class="active">Alle</button>
+      <button data-team="U14">U14</button>
+      <button data-team="U16">U16</button>
+      <button data-team="U21">U21</button>
+      <button data-team="Women">Damen</button>
+      <button data-team="Men2">Herren</button>
+    </div>
+    <div class="table-wrap" id="scorersList"></div>
+    <button class="more-btn" id="scorersMoreBtn" style="display:none">Weitere anzeigen</button>
+  </section>
+
+  <footer class="app-footer">
+    <p>Daten von <a href="https://cpt.kayakers.nl/MatchList/DC2026?day=1" target="_blank" rel="noopener">cpt.kayakers.nl</a> · Aktualisierung an Turniertagen alle 15 Min</p>
+    <p>Inoffizielles Mirror — kein Ersatz für die offizielle Turnier-Seite. Erstellt für Familie, Freunde und den VMW Berlin.</p>
+    <p>Gebaut von Julius Brüning · <a href="mailto:juliusbruening1994@gmail.com?subject=Idee%20f%C3%BCr%20meinen%20Verein">Idee für deinen Verein? Schreib mir.</a></p>
+  </footer>
+
+  <nav class="tabbar">
+    <div class="inner">
+      <button data-tab="live" class="active"><span class="ico">🔴</span><span>VMW Live</span></button>
+      <button data-tab="plan"><span class="ico">📅</span><span>Spielplan</span></button>
+      <button data-tab="teams"><span class="ico">👥</span><span>Teams</span></button>
+      <button data-tab="haus"><span class="ico">🏆</span><span>Hausliga</span></button>
+    </div>
+  </nav>
+</div>
+
+<div class="scrim" id="adminModal" onclick="if(event.target===this)closeModal('admin')">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="close" onclick="closeModal('admin')">×</button>
+    <div id="adminContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
