@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#C8102E">
   <title>VMW Deutschland Cup 2026</title>
-  <link rel="icon" href="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpolygon%20points%3D%220%2C5%2095%2C50%200%2C95%22%20fill%3D%22%23C8102E%22%2F%3E%3C%2Fsvg%3E">
   <link rel="apple-touch-icon" href="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/style.css">
@@ -16,10 +16,10 @@
     <div class="inner">
       <img class="logo" src="https://vmw-berlin.de/wp-content/uploads/2022/06/cropped-final_logo-3.png" alt="VMW" onerror="this.style.display='none'">
       <div class="title">VMW Berlin<small>Deutschland Cup 2026 · 23.–25. Mai</small></div>
-      <div class="updated" id="updatedBox" aria-label="Letzter Datenstand">
+      <button class="updated" id="updatedBox" onclick="openModal('info')" aria-label="Letzter Datenstand · zum Erklären antippen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         <span id="updatedText">lade …</span>
-      </div>
+      </button>
       <button class="menu" onclick="openModal('admin')" aria-label="Trainer-Login">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       </button>
@@ -140,6 +140,31 @@
     <div class="grab"></div>
     <button class="close" onclick="closeModal('admin')">×</button>
     <div id="adminContent"></div>
+  </div>
+</div>
+
+<div class="scrim" id="infoModal" onclick="if(event.target===this)closeModal('info')">
+  <div class="sheet">
+    <div class="grab"></div>
+    <button class="close" onclick="closeModal('info')">×</button>
+    <h3>Wann werden die Daten aktualisiert?</h3>
+    <p style="margin:0 0 12px;color:var(--ink-2);font-size:14px;line-height:1.55">
+      Die Spielstände werden automatisch von <a href="https://cpt.kayakers.nl/MatchList/DC2026?day=1" target="_blank" rel="noopener" style="color:var(--vmw-red)">cpt.kayakers.nl</a> abgegriffen.
+    </p>
+    <div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px;color:var(--ink);margin-bottom:6px">An den Turniertagen (Sa 23. – Mo 25. Mai)</div>
+      <div style="font-size:13px;color:var(--ink-2)">Alle 15 Minuten zwischen 06:00 und 23:00 Uhr.</div>
+    </div>
+    <div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:13px;color:var(--ink);margin-bottom:6px">An anderen Tagen</div>
+      <div style="font-size:13px;color:var(--ink-2)">1× pro Tag um 06:00 Uhr.</div>
+    </div>
+    <p style="margin:0 0 6px;color:var(--ink-2);font-size:13px;line-height:1.55">
+      Dein Handy holt sich die Daten dann selbst alle 60 Sekunden vom Server ab. Die Anzeige im Header zeigt, wie alt die Daten gerade sind.
+    </p>
+    <p style="margin:0;color:var(--ink-3);font-size:12px;line-height:1.5">
+      Wenn der Wert länger als 20 Min nicht frisch wird, liegt's meist daran, dass die Quellseite gerade keine neuen Spielstände einträgt — nicht an der App selbst.
+    </p>
   </div>
 </div>
 

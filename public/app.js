@@ -160,7 +160,6 @@ function liveCard(m){
   return `
     <div class="${cls.join(' ')}">
       <div class="match-top">
-        <span class="time">${escapeHtml(m.time||'')}</span>
         <span class="pitch">F${escapeHtml(String(m.pitch))}</span>
         <span class="division-chip">${escapeHtml(divisionLabel(m.division))}</span>
         ${statusBadgeHtml(m)}
