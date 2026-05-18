@@ -279,13 +279,28 @@ function renderLive(){
 function setLiveSections(live, next, refs, done){
   document.getElementById('liveNowCount').textContent = live.length;
   document.getElementById('liveNowList').innerHTML = live.length
-    ? live.map(liveCard).join('')
+    ? renderGroupedByTime(live)
     : `<div class="empty">Gerade kein VMW-Spiel live.</div>`;
 
   renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`);
   renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`);
   renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Heute noch keine VMW-Spiele beendet.</div>`);
 }
+
+// Rendert Match-Liste mit Zeit-Block-Headern (wie im Spielplan)
+function renderGroupedByTime(list){
+  const groups = groupByTime(list);
+  return groups.map(([time, items]) => {
+    const isLiveBlock = items.some(m => m.status==='live');
+    return `
+      <div class="time-block-h ${isLiveBlock?'live-block':''}">
+        <span>${escapeHtml(time)} Uhr</span>
+        <span class="cnt">${items.length}</span>
+      </div>
+      ${items.map(liveCard).join('')}`;
+  }).join('');
+}
+
 function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml){
   document.getElementById(countId).textContent = list.length;
   const listEl = document.getElementById(listId);
@@ -297,7 +312,7 @@ function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtm
   }
   const expanded = state.liveExpand[key];
   const visible = expanded ? list : list.slice(0,4);
-  listEl.innerHTML = visible.map(liveCard).join('');
+  listEl.innerHTML = renderGroupedByTime(visible);
   if (list.length > 4){
     moreEl.hidden = false;
     moreEl.textContent = expanded ? '× Weniger anzeigen' : `▾ Weitere ${list.length-4} anzeigen`;
@@ -759,13 +774,13 @@ function renderActiveTab(){
 function tickStale(){
   const el = document.getElementById('updatedText');
   if (!state.lastFetchOk){
-    el.textContent = '…';
+    el.textContent = 'lade …';
     return;
   }
   const min = Math.floor((Date.now() - state.lastFetchOk) / 60000);
-  if (min < 1) el.textContent = 'gerade';
-  else if (min >= 60) el.textContent = '>1h';
-  else el.textContent = `${min} Min`;
+  if (min < 1) el.textContent = 'vor < 1 Min';
+  else if (min >= 60) el.textContent = 'vor >1 h';
+  else el.textContent = `vor ${min} Min`;
 }
 setInterval(tickStale, 30_000);
 

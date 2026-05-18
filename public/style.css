@@ -61,6 +61,9 @@ nav.tabbar button{
   color:var(--ink-3);font-size:11px;font-weight:500;min-height:44px;
 }
 nav.tabbar button .ico{font-size:20px;line-height:1}
+nav.tabbar button .ico-img{height:22px;width:auto;display:block;object-fit:contain;filter:saturate(.9)}
+nav.tabbar button.active .ico-img{filter:none}
+nav.tabbar button:not(.active) .ico-img{opacity:.6}
 nav.tabbar button.active{color:var(--vmw-red)}
 
 .panel{display:none;padding:14px 14px 24px}
