@@ -1,7 +1,16 @@
 // netlify/functions/data.mjs
 // GET /api/data — Liefert Snapshot + Schiri-Einteilungen.
-// Mit Cache-Control max-age=60: Browser cached die Antwort 60s,
-// reduziert Function-Calls pro Nutzer:in auf max. 1/min.
+//
+// CACHING-STRATEGIE (wichtig für Skalierung mit vielen Nutzern):
+//
+//   cache-control:          steuert den Browser-Cache (30s)
+//   netlify-cdn-cache-control: steuert Netlify's Edge-Cache
+//
+// Mit s-maxage=30, stale-while-revalidate=300 cached das Netlify-CDN
+// die Antwort 30 Sekunden. Egal wie viele Nutzer pollen — die Function
+// wird nur ~1× pro 30s GLOBAL aufgerufen, alle anderen Requests bekommen
+// die gecachte Antwort direkt vom CDN. Damit skaliert das Setup auch bei
+// 100+ gleichzeitigen Nutzern, ohne Function-Credits zu verbrennen.
 
 import { getStore } from '@netlify/blobs';
 
@@ -23,7 +32,12 @@ export default async (req) => {
       status: 200,
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'public, max-age=60, s-maxage=60',
+        // Browser: kurzer Cache (30s) — entlastet uns wenn ein Nutzer mehrfach pollt
+        'cache-control': 'public, max-age=30',
+        // Netlify Edge: 30s frisch + 5min stale-while-revalidate.
+        // Effekt: Function wird nur ~1× pro 30s global aufgerufen,
+        // egal wie viele Nutzer parallel die App offen haben.
+        'netlify-cdn-cache-control': 'public, s-maxage=30, stale-while-revalidate=300',
       },
     });
   } catch (e) {

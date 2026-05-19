@@ -771,15 +771,38 @@ function renderActiveTab(){
    UPDATE-INDICATOR (Header) — Timestamp passiv
    ========================================================= */
 function tickStale(){
-  const el = document.getElementById('updatedText');
-  if (!state.lastFetchOk){
+  const el  = document.getElementById('updatedText');
+  const dot = document.getElementById('updatedDot');
+
+  // Wir zeigen NICHT den Frontend-Sync-Zeitpunkt, sondern wann der Scraper
+  // zuletzt frische Daten von kayakers.nl geholt hat (snapshot.lastUpdated).
+  const stamp = state.snapshot?.lastUpdated;
+  if (!stamp){
     el.textContent = 'lade …';
+    if (dot) dot.className = 'dot dead';
     return;
   }
-  const min = Math.floor((Date.now() - state.lastFetchOk) / 60000);
-  if (min < 1) el.textContent = 'vor < 1 Min';
-  else if (min >= 60) el.textContent = 'vor >1 h';
-  else el.textContent = `vor ${min} Min`;
+
+  const last = new Date(stamp);
+  const minAgo = Math.floor((Date.now() - last.getTime()) / 60000);
+
+  // Absolute Berlin-Uhrzeit — "Stand 12:34" — einfacher zu scannen als "vor X Min"
+  const timeStr = last.toLocaleTimeString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour:   '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  el.textContent = `Stand ${timeStr}`;
+
+  // Dot-Farbe nach Alter:
+  //   grün < 20 Min  (Cron läuft 15-Min-Takt, also normal)
+  //   gelb < 60 Min  (verzögert, irgendwas hakt)
+  //   grau > 60 Min  (alt)
+  if (!dot) return;
+  if (minAgo < 20)      dot.className = 'dot';
+  else if (minAgo < 60) dot.className = 'dot stale';
+  else                  dot.className = 'dot dead';
 }
 setInterval(tickStale, 30_000);
 
