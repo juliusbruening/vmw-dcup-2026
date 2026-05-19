@@ -14,7 +14,10 @@ export const config = {
   schedule: '*/15 4-21 * * *',
 };
 
+// Hochfrequenter Scrape-Schedule: Vortag des Turniers (für Spielplan-
+// Last-Minute-Änderungen) + die drei eigentlichen Turniertage.
 const TOURNAMENT_DAYS_UTC = new Set([
+  '2026-05-22', // Freitag (Setup / Last-Minute-Anpassungen)
   '2026-05-23', // Samstag
   '2026-05-24', // Sonntag
   '2026-05-25', // Pfingstmontag

@@ -6,7 +6,7 @@ Quelle: `cpt.kayakers.nl/DC2026`. Hosting: Netlify Free Tier.
 - **Scraper**: Node + cheerio (kein Headless-Browser nötig — kayakers.nl ist server-rendered)
 - **Storage**: Netlify Blobs (snapshot + Schiri-Einteilungen)
 - **Frontend**: Statisches HTML/CSS/JS, mobile-first, in VMW-Rot
-- **Scheduled Function**: alle 15 Min, 06:00–23:00 Berlin-Zeit, **nur an Turniertagen** scraped tatsächlich. An anderen Tagen 1× pro Tag (Logik im Code).
+- **Scheduled Function**: alle 15 Min, 06:00–23:00 Berlin-Zeit, **am Turnier-Wochenende** (Fr 22. – Mo 25. Mai) scraped tatsächlich. An anderen Tagen 1× pro Tag (Logik im Code).
 
 ## Projektstruktur
 
@@ -112,8 +112,8 @@ Für z.B. `dc2026.vmw-berlin.de`:
 
 ```
 [cpt.kayakers.nl/DC2026]
-        │ alle 15 Min, Sa–Mo 23.–25. Mai 2026, 06–23 Berlin-Zeit
-        │ (außerhalb Turnier: 1× pro Tag)
+        │ alle 15 Min, Fr–Mo 22.–25. Mai 2026, 06–23 Berlin-Zeit
+        │ (außerhalb Turnier-Wochenende: 1× pro Tag)
         ▼
 [netlify/functions/scrape.mjs]
         │ schreibt snapshot.json
