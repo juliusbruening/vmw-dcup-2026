@@ -6,6 +6,30 @@
 
 const POLL_INTERVAL_MS = 60_000;
 
+/* =========================================================
+   BEAMER-MODUS
+   Aktiviert via ?beamer=1 in der URL. In dem Modus:
+   - Tabbar + Admin-Icon verschwinden
+   - "Heute"-Tab ist gelockt (kein Tab-Wechsel)
+   - Schriftgrößen werden via CSS deutlich größer
+   - "Mehr anzeigen"-Sektions automatisch offen
+   - Wake-Lock verhindert Bildschirm-Sleep solange Tab aktiv ist
+   ========================================================= */
+const isBeamerMode = new URLSearchParams(window.location.search).get('beamer') === '1';
+if (isBeamerMode){
+  document.body.classList.add('beamer');
+  // Bildschirm wachhalten (Chrome, Edge, neueres Safari unterstützen das)
+  if ('wakeLock' in navigator){
+    navigator.wakeLock.request('screen').catch(()=>{ /* still ok */ });
+    // Wake-Lock reaktivieren wenn Tab wieder sichtbar wird
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible'){
+        navigator.wakeLock.request('screen').catch(()=>{});
+      }
+    });
+  }
+}
+
 // VMW-Teams (statisch — passt zur Konfiguration im Scraper)
 const TEAMS = [
   { code:'U14',   short:'VMW U14',     pillLabel:'U14',     name:'VMW Berlin U14',   division:'Pupils U14' },
@@ -31,7 +55,10 @@ const state = {
   teamsRefPastOpen: false,
   scorerFilt: localStorage.getItem('vmw.scorersFilter') || 'all',
   scorersAllVisible: false,
-  liveExpand: { next: false, ref: false, done: false },
+  // Im Beamer-Modus immer alles ausklappen — sonst stehen "Mehr anzeigen"-Buttons rum
+  liveExpand: (new URLSearchParams(location.search).get('beamer') === '1')
+    ? { next:true, ref:true, done:true }
+    : { next:false, ref:false, done:false },
   adminPassword: localStorage.getItem('vmw.adminPwd') || null,
   adminFilter: localStorage.getItem('vmw.adminFilter') || 'all',
   // remote
@@ -751,6 +778,7 @@ function showToast(text){
    TABS
    ========================================================= */
 function setTab(tab){
+  if (isBeamerMode) tab = 'live'; // Beamer-Modus: nur "Heute" anzeigen
   state.tab = tab; save('tab', tab);
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
