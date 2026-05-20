@@ -147,6 +147,16 @@ nav.tabbar button.active{color:var(--vmw-red)}
 .pfeift-row{font-size:12.5px;color:#7A4310;font-weight:600;margin-top:6px;padding-top:5px;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:4px}
 .pfeift-row .icon{color:var(--orange)}
 
+/* Schiri-Karten: VMW-Pfeift-Info prominent + Gegner-Paarung dezent darunter */
+.pfeift-headline{
+  font-size:14px;font-weight:700;color:#7A4310;margin:2px 0;
+  display:flex;align-items:center;gap:5px;line-height:1.25;
+}
+.pfeift-headline .icon{color:var(--orange)}
+.pfeift-headline .weak{font-weight:500;color:var(--ink-2)}
+.pfeift-subline{font-size:11.5px;color:var(--ink-3);margin-bottom:4px;line-height:1.3}
+.pfeift-subline .vs{color:var(--ink-3);margin:0 3px}
+
 .time-block-h{
   display:flex;align-items:center;gap:10px;margin:14px 0 8px;
   font-weight:700;font-size:14px;color:var(--ink);
@@ -273,7 +283,7 @@ label.field input:focus{outline:2px solid var(--vmw-red);border-color:var(--vmw-
    damit alles Wichtige ohne Scrollen sichtbar ist.
    ========================================================= */
 body.beamer{
-  font-size:17px;
+  font-size:clamp(14px, 1vw, 22px);
   padding-bottom:0;
 }
 body.beamer .container{ max-width:none; width:100% }
@@ -286,12 +296,13 @@ body.beamer .more-btn,
 body.beamer .panel h2,
 body.beamer .day-switch{ display:none !important }
 
-/* Header: schmaler, aber Logo + Vereinsname noch klar lesbar */
-body.beamer header.app .inner{ height:62px; gap:14px }
-body.beamer header.app img.logo{ height:40px; padding:4px 6px; border-radius:8px }
-body.beamer header.app .title{ font-size:20px; line-height:1.15 }
-body.beamer header.app .title small{ font-size:12px; margin-top:2px }
-body.beamer header.app .updated{ font-size:13px; padding:6px 10px; gap:6px }
+/* Header: schmaler, aber Logo + Vereinsname noch klar lesbar.
+   clamp() macht das fluid: bei 1080p ungefähr wie vorher, bei 4K größer, bei 720p kleiner. */
+body.beamer header.app .inner{ height:clamp(54px, 4vw, 80px); gap:14px }
+body.beamer header.app img.logo{ height:clamp(32px, 2.2vw, 56px); padding:4px 6px; border-radius:8px }
+body.beamer header.app .title{ font-size:clamp(16px, 1.2vw, 26px); line-height:1.15 }
+body.beamer header.app .title small{ font-size:clamp(11px, 0.7vw, 14px); margin-top:2px }
+body.beamer header.app .updated{ font-size:clamp(11px, 0.75vw, 15px); padding:6px 10px; gap:6px }
 body.beamer header.app .updated .dot{ width:8px; height:8px }
 
 /* Panel als 3-Spalten-Dashboard mit "Läuft gerade" über die ganze Breite oben.
@@ -312,7 +323,8 @@ body.beamer .panel.active{
     "done next ref";
   gap:14px 20px;
   padding:14px 24px 16px;
-  padding-right:240px;
+  /* Platz rechts für QR-Code: matched die clamp() Breite des qr-container + Abstand */
+  padding-right:clamp(190px, 13vw, 280px);
   align-items:start;
 }
 body.beamer .live-section[data-section="now"]  { grid-area:now }
@@ -322,14 +334,14 @@ body.beamer .live-section[data-section="ref"]  { grid-area:ref }
 body.beamer .live-section{ min-width:0 }
 
 body.beamer .panel h3.section{
-  font-size:15px; margin:2px 0 6px; gap:8px; letter-spacing:.5px;
+  font-size:clamp(13px, 0.9vw, 19px); margin:2px 0 6px; gap:8px; letter-spacing:.5px;
 }
 body.beamer .panel h3.section .count{
-  font-size:13px; padding:1px 9px;
+  font-size:clamp(11px, 0.7vw, 15px); padding:1px 9px;
 }
 /* Leere Sektionen: dezent, inline, kein riesiger Block */
 body.beamer .panel .empty{
-  font-size:14px; font-style:italic; color:var(--ink-3);
+  font-size:clamp(12px, 0.8vw, 17px); font-style:italic; color:var(--ink-3);
   background:transparent; padding:4px 0 10px;
   text-align:left; border-radius:0;
 }
@@ -345,32 +357,34 @@ body.beamer .card.pfeift::before{ width:4px }
 body.beamer .card.live{ box-shadow:0 0 0 2px var(--green), var(--shadow) }
 
 body.beamer .match-top{
-  font-size:12px; gap:7px; margin-bottom:4px;
+  font-size:clamp(11px, 0.7vw, 15px); gap:7px; margin-bottom:4px;
 }
-body.beamer .match-top .pitch{ font-size:12px; padding:2px 8px; border-radius:6px }
-body.beamer .division-chip{ font-size:12px; padding:2px 8px; border-radius:6px }
-body.beamer .badge{ font-size:11px; padding:2px 9px }
+body.beamer .match-top .pitch{ font-size:clamp(11px, 0.7vw, 15px); padding:2px 8px; border-radius:6px }
+body.beamer .division-chip{ font-size:clamp(11px, 0.7vw, 15px); padding:2px 8px; border-radius:6px }
+body.beamer .badge{ font-size:clamp(11px, 0.65vw, 14px); padding:2px 9px }
 body.beamer .badge.live .pulse-dot{ width:8px; height:8px }
 body.beamer .pulse-dot{ width:9px; height:9px }
 
 body.beamer .match-teams{ gap:8px; margin:2px 0 }
-body.beamer .match-teams .team{ font-size:17px; font-weight:700; line-height:1.2 }
-body.beamer .match-teams .score{ font-size:21px }
-body.beamer .match-teams .vs{ font-size:13px; min-width:54px }
+body.beamer .match-teams .team{ font-size:clamp(14px, 1vw, 22px); font-weight:700; line-height:1.2 }
+body.beamer .match-teams .score{ font-size:clamp(17px, 1.3vw, 28px) }
+body.beamer .match-teams .vs{ font-size:clamp(11px, 0.75vw, 16px); min-width:54px }
 
-body.beamer .pfeift-row{ font-size:13px; margin-top:4px; padding-top:4px }
-body.beamer .refs{ font-size:13px; margin-top:3px }
+body.beamer .pfeift-row{ font-size:clamp(11px, 0.8vw, 16px); margin-top:4px; padding-top:4px }
+body.beamer .pfeift-headline{ font-size:clamp(13px, 0.9vw, 19px) }
+body.beamer .pfeift-subline{ font-size:clamp(11px, 0.7vw, 14px) }
+body.beamer .refs{ font-size:clamp(11px, 0.8vw, 16px); margin-top:3px }
 body.beamer .ref-pill{
-  font-size:13px; padding:2px 9px; margin:3px 4px 0 0;
+  font-size:clamp(11px, 0.8vw, 16px); padding:2px 9px; margin:3px 4px 0 0;
 }
-body.beamer .refs-empty{ font-size:13px }
+body.beamer .refs-empty{ font-size:clamp(11px, 0.75vw, 15px) }
 
-/* Zeit-Block-Header: schmaler */
+/* Zeit-Block-Header: schmaler, fluid skaliert */
 body.beamer .time-block-h{
-  font-size:14px; margin:10px 0 6px; gap:10px;
+  font-size:clamp(12px, 0.85vw, 18px); margin:10px 0 6px; gap:10px;
 }
 body.beamer .time-block-h .cnt{
-  font-size:12px; padding:1px 9px;
+  font-size:clamp(11px, 0.7vw, 14px); padding:1px 9px;
 }
 
 /* In den 3 unteren Spalten (Done / Next / Ref): single-column, stacked Karten */
@@ -385,14 +399,14 @@ body.beamer .live-section[data-section="now"] .time-block-cards{
   gap:8px;
 }
 
-/* QR-Code-Karte rechts — kompakt unter dem Header */
+/* QR-Code-Karte rechts — kompakt unter dem Header, fluid skaliert */
 .qr-container{ display:none }
 body.beamer .qr-container{
   display:block;
   position:fixed;
-  right:18px;
-  top:82px;
-  width:200px;
+  right:clamp(14px, 1vw, 28px);
+  top:clamp(68px, 4.8vw, 100px);
+  width:clamp(160px, 11vw, 240px);
   background:#fff;
   padding:14px 14px 12px;
   border-radius:14px;
@@ -401,14 +415,14 @@ body.beamer .qr-container{
   z-index:40;
 }
 body.beamer .qr-container .qr-label{
-  font-size:13px; font-weight:700; color:var(--ink); margin-bottom:8px;
+  font-size:clamp(11px, 0.75vw, 15px); font-weight:700; color:var(--ink); margin-bottom:8px;
 }
 body.beamer .qr-container #qrCode{
-  width:170px; height:170px; margin:0 auto;
+  width:100%; aspect-ratio:1; margin:0 auto;
   display:flex; align-items:center; justify-content:center;
 }
 body.beamer .qr-container #qrCode svg{ width:100%; height:auto; display:block }
 body.beamer .qr-container .qr-url{
-  font-size:10.5px; color:var(--ink-3); margin-top:8px;
+  font-size:clamp(9px, 0.65vw, 13px); color:var(--ink-3); margin-top:8px;
   word-break:break-all; line-height:1.3;
 }

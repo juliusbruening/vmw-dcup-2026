@@ -214,18 +214,32 @@ function liveCard(m){
   if(role==='spielt') cls.push('spielt');
   else if(role==='pfeift') cls.push('pfeift');
 
+  // Schiri-Karte: anderes Layout — VMW prominent, Gegner-Paarung als dezente Sekundärinfo.
+  // Damit Schiri-Karten nicht durch die Match-Paarung der fremden Teams größer
+  // wirken als VMW-Spielkarten.
+  if (role === 'pfeift'){
+    const t = teamByCode(m.juryVmw);
+    return `
+      <div class="${cls.join(' ')}">
+        <div class="match-top">
+          <span class="pitch">F${escapeHtml(String(m.pitch))}</span>
+          <span class="division-chip">${escapeHtml(divisionLabel(m.division))}</span>
+        </div>
+        <div class="pfeift-headline">
+          <span class="icon">⚖️</span> ${t?.short || 'VMW'} <span class="weak">pfeift</span>
+        </div>
+        <div class="pfeift-subline">
+          ${escapeHtml(m.teamA?.name||'')} <span class="vs">vs</span> ${escapeHtml(m.teamB?.name||'')}
+        </div>
+        <div class="refs">${refPills(refsFor(m.nr))}</div>
+      </div>`;
+  }
+
+  // Normale Spielkarte
   const nameA = displayName(m.teamA?.name, isVmw(m.teamA?.name)?m.vmwTeam:null);
   const nameB = displayName(m.teamB?.name, isVmw(m.teamB?.name)?m.vmwTeam:null);
   const aCls  = isVmw(m.teamA?.name) ? 'team vmw' : 'team';
   const bCls  = isVmw(m.teamB?.name) ? 'team vmw right' : 'team right';
-
-  let refBlock = '';
-  if(role==='pfeift'){
-    const t = teamByCode(m.juryVmw);
-    refBlock = `
-      <div class="pfeift-row"><span class="icon">⚖️</span> ${t?.short || 'VMW'} pfeift</div>
-      <div class="refs">${refPills(refsFor(m.nr))}</div>`;
-  }
 
   return `
     <div class="${cls.join(' ')}">
@@ -239,7 +253,6 @@ function liveCard(m){
         ${scoreHtml(m)}
         <span class="${bCls}">${escapeHtml(nameB||'')}</span>
       </div>
-      ${refBlock}
     </div>`;
 }
 
@@ -357,12 +370,12 @@ function setLiveSections(live, next, refs, done){
     ? renderGroupedByTime(live)
     : `<div class="empty">Gerade kein VMW-Spiel live.</div>`;
 
-  // Einheitlicher Cap = 3 ZEIT-SLOTS für alle Sektionen.
-  // Beispiel: 2 Spiele um 11:00 + 1 Spiel um 11:30 + 1 Spiel um 12:00 = 4 Karten in 3 Slots,
-  // also alle vier werden gezeigt. Mehr Slots = "Mehr anzeigen"-Button (auf dem Handy).
-  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 3);
-  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 3);
-  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 3);
+  // Einheitlicher Cap = 4 ZEIT-SLOTS für alle Sektionen.
+  // Beispiel: 2 Spiele um 11:00 + 1 Spiel um 11:30 + 1 Spiel um 12:00 + 1 Spiel um 12:30 = 5 Karten in 4 Slots,
+  // also alle fünf werden gezeigt. Mehr Slots = "Mehr anzeigen"-Button (auf dem Handy).
+  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 4);
+  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 4);
+  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 4);
 }
 
 // Rendert Match-Liste mit Zeit-Block-Headern (wie im Spielplan)
