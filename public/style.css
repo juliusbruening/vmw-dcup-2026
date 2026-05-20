@@ -294,10 +294,33 @@ body.beamer header.app .title small{ font-size:12px; margin-top:2px }
 body.beamer header.app .updated{ font-size:13px; padding:6px 10px; gap:6px }
 body.beamer header.app .updated .dot{ width:8px; height:8px }
 
-/* Panel: weniger Padding, mehr Platz für Inhalt */
-body.beamer .panel{ padding:16px 24px 20px; padding-right:260px }
+/* Panel als 3-Spalten-Dashboard mit "Läuft gerade" über die ganze Breite oben.
+   Layout:
+     +-------------------------------+
+     | LÄUFT GERADE (volle Breite)   |
+     +-------+-------+-------+-------+
+     | DONE  | NEXT  | REF   | (QR)  |
+     +-------+-------+-------+-------+
+*/
+body.beamer .panel{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  grid-template-areas:
+    "now  now  now"
+    "done next ref";
+  gap:14px 20px;
+  padding:14px 24px 16px;
+  padding-right:240px;
+  align-items:start;
+}
+body.beamer .live-section[data-section="now"]  { grid-area:now }
+body.beamer .live-section[data-section="done"] { grid-area:done }
+body.beamer .live-section[data-section="next"] { grid-area:next }
+body.beamer .live-section[data-section="ref"]  { grid-area:ref }
+body.beamer .live-section{ min-width:0 }
+
 body.beamer .panel h3.section{
-  font-size:17px; margin:14px 0 6px; gap:10px; letter-spacing:.5px;
+  font-size:15px; margin:2px 0 6px; gap:8px; letter-spacing:.5px;
 }
 body.beamer .panel h3.section .count{
   font-size:13px; padding:1px 9px;
@@ -348,8 +371,13 @@ body.beamer .time-block-h .cnt{
   font-size:12px; padding:1px 9px;
 }
 
-/* Multi-Column-Grid für Karten — 2–3 Spalten je nach Bildschirmbreite */
-body.beamer .time-block-cards{
+/* In den 3 unteren Spalten (Done / Next / Ref): single-column, stacked Karten */
+body.beamer .time-block-cards{ display:block }
+body.beamer .time-block-cards > .card{ margin-bottom:6px }
+
+/* Die "Läuft gerade"-Sektion oben spannt voll und kann mehrere Live-Karten
+   nebeneinander legen — auto-fit greift, falls 2-3 Spiele gleichzeitig laufen */
+body.beamer .live-section[data-section="now"] .time-block-cards{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));
   gap:8px;

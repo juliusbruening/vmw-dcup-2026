@@ -57,10 +57,20 @@ const TEAMS = [
 /* =========================================================
    STATE
    ========================================================= */
+// Heutigen Turniertag einmalig beim App-Start bestimmen.
+// Wenn im localStorage ein vergangener Tag gespeichert ist (z.B. Sa von gestern,
+// heute ist So), wird er verworfen und auf heute zurückgesetzt.
+// Manuell vorausgewählte zukünftige Tage bleiben aber erhalten.
+const _todayDay = todayTournamentDay();
+function pickInitialDay(key){
+  const stored = Number(localStorage.getItem(key));
+  return (stored && stored >= _todayDay) ? stored : _todayDay;
+}
+
 const state = {
   tab:        localStorage.getItem('vmw.tab') || 'live',
-  liveDay:    Number(localStorage.getItem('vmw.liveDay'))   || todayTournamentDay(),
-  planDay:    Number(localStorage.getItem('vmw.planDay'))   || todayTournamentDay(),
+  liveDay:    pickInitialDay('vmw.liveDay'),
+  planDay:    pickInitialDay('vmw.planDay'),
   planScope:  localStorage.getItem('vmw.planScope')  || 'vmw',
   planFilter: localStorage.getItem('vmw.spielplanFilter') || 'all',
   planDivision: localStorage.getItem('vmw.spielplanDivision') || 'all',
@@ -70,12 +80,8 @@ const state = {
   teamsRefPastOpen: false,
   scorerFilt: localStorage.getItem('vmw.scorersFilter') || 'all',
   scorersAllVisible: false,
-  // Im Beamer-Modus klappen "Spielen" und "Schiri" auf (vollständige Tagessicht),
-  // "Gerade beendet" bleibt aber auf 4 gecappt — sonst wird die Beamer-Seite mit dem
-  // Tagesverlauf immer länger und drückt die anstehenden Spiele aus dem Bild.
-  liveExpand: (new URLSearchParams(location.search).get('beamer') === '1')
-    ? { next:true, ref:true, done:false }
-    : { next:false, ref:false, done:false },
+  // Auto-Expansion ist in beiden Modi aus — Beamer cappt selbst auf 3 pro Spalte.
+  liveExpand: { next:false, ref:false, done:false },
   adminPassword: localStorage.getItem('vmw.adminPwd') || null,
   adminFilter: localStorage.getItem('vmw.adminFilter') || 'all',
   // remote
@@ -87,13 +93,17 @@ const state = {
 };
 function save(k,v){ localStorage.setItem('vmw.'+k, v); }
 function todayTournamentDay(){
-  // Vor & während Turnier: Sa=1, So=2, Mo=3. Sonst: Default 1.
-  const now = new Date();
-  const ymd = now.toISOString().slice(0,10);
+  // Tagesnummer auf Basis der Berliner Lokalzeit (sonst tickt's um Mitternacht
+  // Berlin nicht um, weil UTC erst 2h später Tageswechsel hat).
+  // Vor Turnier (≤ Fr 22.05): Default 1 (zeigt Sa-Spielplan)
+  // Während Turnier:           1 / 2 / 3 je nach Tag
+  // Nach Turnier (> Mo 25.05): 3 (zeigt Mo-Spielplan, letzter relevanter Tag)
+  const ymd = new Date().toLocaleDateString('en-CA', { timeZone:'Europe/Berlin' });
   if (ymd === '2026-05-23') return 1;
   if (ymd === '2026-05-24') return 2;
   if (ymd === '2026-05-25') return 3;
-  return 1;
+  if (ymd < '2026-05-23')   return 1;
+  return 3;
 }
 
 /* =========================================================
@@ -143,6 +153,22 @@ function currentBerlinDayAndTime(){
   const day = ymd === '2026-05-23' ? 1 : ymd === '2026-05-24' ? 2 : ymd === '2026-05-25' ? 3 : (ymd < '2026-05-23' ? 0 : 4);
   return { day, time: hm };
 }
+// Liefert alle Matches innerhalb der ersten N Zeit-Slots der Liste.
+// (Liste muss schon nach Zeit sortiert sein — ascending für "Nächste", descending für "Beendete".)
+// Beispiel: bei [11:00, 11:00, 11:30, 12:00] und slotCap=2 → drei Matches (zwei aus 11:00 + eines aus 11:30).
+function takeTopTimeSlots(list, slotCap){
+  const seen = new Set();
+  const out = [];
+  for (const m of list){
+    if (!seen.has(m.time)){
+      if (seen.size >= slotCap) break;
+      seen.add(m.time);
+    }
+    out.push(m);
+  }
+  return out;
+}
+
 function groupByTime(list){
   const map = new Map();
   list.forEach(m=>{
@@ -306,6 +332,12 @@ function renderLive(){
     setLiveSections([], [], [], []);
     return;
   }
+  // Im Beamer-Modus immer auf den aktuellen Turniertag syncen
+  // (greift beim 60s-Polling — Mitternachts-Tagewechsel passt sich automatisch an)
+  if (isBeamerMode){
+    const today = todayTournamentDay();
+    if (today !== state.liveDay) state.liveDay = today;
+  }
   const day = state.liveDay;
   document.querySelectorAll('#liveDaySwitch button').forEach(b=>{
     b.classList.toggle('active', Number(b.dataset.day)===day);
@@ -325,8 +357,11 @@ function setLiveSections(live, next, refs, done){
     ? renderGroupedByTime(live)
     : `<div class="empty">Gerade kein VMW-Spiel live.</div>`;
 
-  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 4);
-  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 4);
+  // Einheitlicher Cap = 3 ZEIT-SLOTS für alle Sektionen.
+  // Beispiel: 2 Spiele um 11:00 + 1 Spiel um 11:30 + 1 Spiel um 12:00 = 4 Karten in 3 Slots,
+  // also alle vier werden gezeigt. Mehr Slots = "Mehr anzeigen"-Button (auf dem Handy).
+  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 3);
+  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 3);
   renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 3);
 }
 
@@ -350,7 +385,7 @@ function renderGroupedByTime(list){
   }).join('');
 }
 
-function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml, cap=4){
+function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml, slotCap=3){
   document.getElementById(countId).textContent = list.length;
   const listEl = document.getElementById(listId);
   const moreEl = document.getElementById(moreBtnId);
@@ -360,11 +395,12 @@ function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtm
     return;
   }
   const expanded = state.liveExpand[key];
-  const visible = expanded ? list : list.slice(0, cap);
+  const visible = expanded ? list : takeTopTimeSlots(list, slotCap);
   listEl.innerHTML = renderGroupedByTime(visible);
-  if (list.length > cap){
+  const hidden = list.length - visible.length;
+  if (hidden > 0){
     moreEl.hidden = false;
-    moreEl.textContent = expanded ? '× Weniger anzeigen' : `▾ Weitere ${list.length-cap} anzeigen`;
+    moreEl.textContent = expanded ? '× Weniger anzeigen' : `▾ Weitere ${hidden} anzeigen`;
   } else {
     moreEl.hidden = true;
   }

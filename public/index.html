@@ -33,17 +33,25 @@
       <button data-day="2">So <small>24. Mai</small></button>
       <button data-day="3">Mo <small>25. Mai</small></button>
     </div>
-    <h3 class="section"><span class="pulse-dot"></span> Läuft gerade <span class="count" id="liveNowCount">0</span></h3>
-    <div id="liveNowList"></div>
-    <h3 class="section">✅ Gerade beendet <span class="count" id="liveDoneCount">0</span></h3>
-    <div id="liveDoneList"></div>
-    <button class="more-btn" id="liveDoneMore" hidden>▾ Weitere anzeigen</button>
-    <h3 class="section">⏭ Als Nächstes (Spielen) <span class="count" id="liveNextCount">0</span></h3>
-    <div id="liveNextList"></div>
-    <button class="more-btn" id="liveNextMore" hidden>▾ Weitere anzeigen</button>
-    <h3 class="section">🟠 Als Nächstes (Schiri) <span class="count" id="liveRefCount">0</span></h3>
-    <div id="liveRefList"></div>
-    <button class="more-btn" id="liveRefMore" hidden>▾ Weitere anzeigen</button>
+    <div class="live-section" data-section="now">
+      <h3 class="section"><span class="pulse-dot"></span> Läuft gerade <span class="count" id="liveNowCount">0</span></h3>
+      <div id="liveNowList"></div>
+    </div>
+    <div class="live-section" data-section="done">
+      <h3 class="section">✅ Gerade beendet <span class="count" id="liveDoneCount">0</span></h3>
+      <div id="liveDoneList"></div>
+      <button class="more-btn" id="liveDoneMore" hidden>▾ Weitere anzeigen</button>
+    </div>
+    <div class="live-section" data-section="next">
+      <h3 class="section">⏭ Als Nächstes (Spielen) <span class="count" id="liveNextCount">0</span></h3>
+      <div id="liveNextList"></div>
+      <button class="more-btn" id="liveNextMore" hidden>▾ Weitere anzeigen</button>
+    </div>
+    <div class="live-section" data-section="ref">
+      <h3 class="section">🟠 Als Nächstes (Schiri) <span class="count" id="liveRefCount">0</span></h3>
+      <div id="liveRefList"></div>
+      <button class="more-btn" id="liveRefMore" hidden>▾ Weitere anzeigen</button>
+    </div>
   </section>
 
   <section class="panel" id="panel-plan">
