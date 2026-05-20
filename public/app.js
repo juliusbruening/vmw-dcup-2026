@@ -21,13 +21,28 @@ if (isBeamerMode){
   // Bildschirm wachhalten (Chrome, Edge, neueres Safari unterstützen das)
   if ('wakeLock' in navigator){
     navigator.wakeLock.request('screen').catch(()=>{ /* still ok */ });
-    // Wake-Lock reaktivieren wenn Tab wieder sichtbar wird
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible'){
         navigator.wakeLock.request('screen').catch(()=>{});
       }
     });
   }
+  // QR-Code für die Sharing-URL der App (ohne ?beamer=1) lazy laden
+  const qrScript = document.createElement('script');
+  qrScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+  qrScript.onload = () => {
+    try {
+      const shareUrl = location.origin + location.pathname; // ohne Query-Params
+      const qr = window.qrcode(0, 'M'); // Type 0 = auto, Error-Correction M
+      qr.addData(shareUrl);
+      qr.make();
+      // createSvgTag mit scalable=true → SVG füllt den Container, sieht scharf aus
+      document.getElementById('qrCode').innerHTML = qr.createSvgTag({ scalable: true });
+      document.getElementById('qrUrl').textContent = shareUrl.replace(/^https?:\/\//, '');
+      document.getElementById('qrContainer').hidden = false;
+    } catch (e){ /* QR fail = beamer mode trotzdem ok */ }
+  };
+  document.head.appendChild(qrScript);
 }
 
 // VMW-Teams (statisch — passt zur Konfiguration im Scraper)
@@ -55,9 +70,11 @@ const state = {
   teamsRefPastOpen: false,
   scorerFilt: localStorage.getItem('vmw.scorersFilter') || 'all',
   scorersAllVisible: false,
-  // Im Beamer-Modus immer alles ausklappen — sonst stehen "Mehr anzeigen"-Buttons rum
+  // Im Beamer-Modus klappen "Spielen" und "Schiri" auf (vollständige Tagessicht),
+  // "Gerade beendet" bleibt aber auf 4 gecappt — sonst wird die Beamer-Seite mit dem
+  // Tagesverlauf immer länger und drückt die anstehenden Spiele aus dem Bild.
   liveExpand: (new URLSearchParams(location.search).get('beamer') === '1')
-    ? { next:true, ref:true, done:true }
+    ? { next:true, ref:true, done:false }
     : { next:false, ref:false, done:false },
   adminPassword: localStorage.getItem('vmw.adminPwd') || null,
   adminFilter: localStorage.getItem('vmw.adminFilter') || 'all',
@@ -310,20 +327,26 @@ function setLiveSections(live, next, refs, done){
 
   renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`);
   renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`);
-  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Heute noch keine VMW-Spiele beendet.</div>`);
+  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`);
 }
 
 // Rendert Match-Liste mit Zeit-Block-Headern (wie im Spielplan)
+// Jeder Zeit-Block ist in einen .time-block-cards Container gewrappt,
+// damit Beamer-Modus dort ein Multi-Column-Grid drauf legen kann.
 function renderGroupedByTime(list){
   const groups = groupByTime(list);
   return groups.map(([time, items]) => {
     const isLiveBlock = items.some(m => m.status==='live');
     return `
-      <div class="time-block-h ${isLiveBlock?'live-block':''}">
-        <span>${escapeHtml(time)} Uhr</span>
-        <span class="cnt">${items.length}</span>
-      </div>
-      ${items.map(liveCard).join('')}`;
+      <div class="time-block">
+        <div class="time-block-h ${isLiveBlock?'live-block':''}">
+          <span>${escapeHtml(time)} Uhr</span>
+          <span class="cnt">${items.length}</span>
+        </div>
+        <div class="time-block-cards">
+          ${items.map(liveCard).join('')}
+        </div>
+      </div>`;
   }).join('');
 }
 

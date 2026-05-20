@@ -35,15 +35,15 @@
     </div>
     <h3 class="section"><span class="pulse-dot"></span> Läuft gerade <span class="count" id="liveNowCount">0</span></h3>
     <div id="liveNowList"></div>
+    <h3 class="section">✅ Gerade beendet <span class="count" id="liveDoneCount">0</span></h3>
+    <div id="liveDoneList"></div>
+    <button class="more-btn" id="liveDoneMore" hidden>▾ Weitere anzeigen</button>
     <h3 class="section">⏭ Als Nächstes (Spielen) <span class="count" id="liveNextCount">0</span></h3>
     <div id="liveNextList"></div>
     <button class="more-btn" id="liveNextMore" hidden>▾ Weitere anzeigen</button>
     <h3 class="section">🟠 Als Nächstes (Schiri) <span class="count" id="liveRefCount">0</span></h3>
     <div id="liveRefList"></div>
     <button class="more-btn" id="liveRefMore" hidden>▾ Weitere anzeigen</button>
-    <h3 class="section">✅ Heute beendet <span class="count" id="liveDoneCount">0</span></h3>
-    <div id="liveDoneList"></div>
-    <button class="more-btn" id="liveDoneMore" hidden>▾ Weitere anzeigen</button>
   </section>
 
   <section class="panel" id="panel-plan">
@@ -164,6 +164,13 @@
     </p>
   </div>
 </div>
+
+<!-- QR-Code für den Beamer-Modus (im Normal-Modus per CSS ausgeblendet) -->
+<aside class="qr-container" id="qrContainer" hidden>
+  <div class="qr-label">App auf dein Handy</div>
+  <div id="qrCode"></div>
+  <div class="qr-url" id="qrUrl"></div>
+</aside>
 
 <div class="toast" id="toast"></div>
 
