@@ -325,9 +325,9 @@ function setLiveSections(live, next, refs, done){
     ? renderGroupedByTime(live)
     : `<div class="empty">Gerade kein VMW-Spiel live.</div>`;
 
-  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`);
-  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`);
-  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`);
+  renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 4);
+  renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 4);
+  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 3);
 }
 
 // Rendert Match-Liste mit Zeit-Block-Headern (wie im Spielplan)
@@ -350,7 +350,7 @@ function renderGroupedByTime(list){
   }).join('');
 }
 
-function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml){
+function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml, cap=4){
   document.getElementById(countId).textContent = list.length;
   const listEl = document.getElementById(listId);
   const moreEl = document.getElementById(moreBtnId);
@@ -360,11 +360,11 @@ function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtm
     return;
   }
   const expanded = state.liveExpand[key];
-  const visible = expanded ? list : list.slice(0,4);
+  const visible = expanded ? list : list.slice(0, cap);
   listEl.innerHTML = renderGroupedByTime(visible);
-  if (list.length > 4){
+  if (list.length > cap){
     moreEl.hidden = false;
-    moreEl.textContent = expanded ? '× Weniger anzeigen' : `▾ Weitere ${list.length-4} anzeigen`;
+    moreEl.textContent = expanded ? '× Weniger anzeigen' : `▾ Weitere ${list.length-cap} anzeigen`;
   } else {
     moreEl.hidden = true;
   }
