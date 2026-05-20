@@ -301,8 +301,10 @@ body.beamer header.app .updated .dot{ width:8px; height:8px }
      +-------+-------+-------+-------+
      | DONE  | NEXT  | REF   | (QR)  |
      +-------+-------+-------+-------+
+   WICHTIG: nur auf den aktiven Panel anwenden — sonst werden auch Spielplan,
+   Teams und Hausliga sichtbar (die im Beamer-Modus nie zu sehen sein sollen).
 */
-body.beamer .panel{
+body.beamer .panel.active{
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
   grid-template-areas:
