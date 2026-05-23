@@ -169,7 +169,9 @@ function takeTopTimeSlots(list, slotCap){
   return out;
 }
 
-function groupByTime(list){
+// Gruppiert Matches nach Uhrzeit. desc=true → späteste Zeit zuerst
+// (für "Gerade beendet": der jüngste Block soll oben stehen).
+function groupByTime(list, { desc = false } = {}){
   const map = new Map();
   list.forEach(m=>{
     const t = m.time || '00:00';
@@ -177,7 +179,12 @@ function groupByTime(list){
     map.get(t).push(m);
   });
   for(const arr of map.values()) arr.sort((a,b)=>Number(a.pitch)-Number(b.pitch));
-  return Array.from(map.entries()).sort((a,b)=> Number(a[0].replace(':','')) - Number(b[0].replace(':','')));
+  const entries = Array.from(map.entries());
+  entries.sort((a,b)=>{
+    const da = Number(a[0].replace(':','')), db = Number(b[0].replace(':',''));
+    return desc ? db - da : da - db;
+  });
+  return entries;
 }
 function refsFor(matchNr){
   const entry = state.refs[matchNr] || state.refs[String(matchNr)];
@@ -375,14 +382,16 @@ function setLiveSections(live, next, refs, done){
   // also alle fünf werden gezeigt. Mehr Slots = "Mehr anzeigen"-Button (auf dem Handy).
   renderExpandableSection('liveNextList','liveNextMore','liveNextCount', next, 'next', `<div class="empty">Keine weiteren VMW-Spiele heute.</div>`, 4);
   renderExpandableSection('liveRefList','liveRefMore','liveRefCount', refs, 'ref',  `<div class="empty">Heute keine Schiri-Einsätze mehr.</div>`, 4);
-  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 4);
+  // "Gerade beendet": desc=true → jüngste Zeit-Blöcke oben, damit man wirklich
+  // die zuletzt beendeten Spiele sieht (sonst Reihenfolge ab Tagesbeginn).
+  renderExpandableSection('liveDoneList','liveDoneMore','liveDoneCount', done, 'done', `<div class="empty">Noch keine VMW-Spiele beendet.</div>`, 4, { desc: true });
 }
 
 // Rendert Match-Liste mit Zeit-Block-Headern (wie im Spielplan)
 // Jeder Zeit-Block ist in einen .time-block-cards Container gewrappt,
 // damit Beamer-Modus dort ein Multi-Column-Grid drauf legen kann.
-function renderGroupedByTime(list){
-  const groups = groupByTime(list);
+function renderGroupedByTime(list, { desc = false } = {}){
+  const groups = groupByTime(list, { desc });
   return groups.map(([time, items]) => {
     const isLiveBlock = items.some(m => m.status==='live');
     return `
@@ -398,7 +407,7 @@ function renderGroupedByTime(list){
   }).join('');
 }
 
-function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml, slotCap=3){
+function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtml, slotCap=3, opts={}){
   document.getElementById(countId).textContent = list.length;
   const listEl = document.getElementById(listId);
   const moreEl = document.getElementById(moreBtnId);
@@ -409,7 +418,9 @@ function renderExpandableSection(listId, moreBtnId, countId, list, key, emptyHtm
   }
   const expanded = state.liveExpand[key];
   const visible = expanded ? list : takeTopTimeSlots(list, slotCap);
-  listEl.innerHTML = renderGroupedByTime(visible);
+  // desc=true rendert die Zeit-Blöcke absteigend — wichtig für "Gerade beendet",
+  // damit die jüngsten beendeten Spiele oben stehen.
+  listEl.innerHTML = renderGroupedByTime(visible, { desc: !!opts.desc });
   const hidden = list.length - visible.length;
   if (hidden > 0){
     moreEl.hidden = false;
