@@ -874,6 +874,14 @@ function renderActiveTab(){
    UPDATE-INDICATOR (Header) — Timestamp passiv
    ========================================================= */
 function tickStale(){
+  // Live-Status (zeitbasiert) auf den aktuellen Snapshot anwenden — damit
+  // Spiele auch zwischen Polls (alle 60s) rechtzeitig in "Jetzt" rutschen,
+  // sobald ihre Anpfiff-Zeit erreicht ist.
+  if (state.snapshot) {
+    deriveLiveByTime(state.snapshot);
+    renderActiveTab();
+  }
+
   const el  = document.getElementById('updatedText');
   const dot = document.getElementById('updatedDot');
 
@@ -957,12 +965,57 @@ function _mergeIncomingRefs(incoming){
   return merged;
 }
 
+// ── Zeitbasierte Live-Erkennung ────────────────────────────────────────
+// kayakers.nl setzt den Match-Status erst NACHTRÄGLICH (wenn die Schiris den
+// Score eintragen). Während des Spiels bleibt der Status auf "Nicht gespielt".
+// Heuristik: wenn die Anpfiff-Zeit bereits erreicht ist UND noch kein Score
+// vorliegt, behandeln wir das Spiel im Frontend als 'live'. Sobald der Score
+// gepflegt wird, übersteuert der Server-Status auf 'done'.
+//
+// Tournament-Tage in Berlin-Zeit (CEST = UTC+2 im Mai):
+const TOURNAMENT_DATES = {
+  1: '2026-05-23', // Samstag
+  2: '2026-05-24', // Sonntag
+  3: '2026-05-25', // Pfingstmontag
+};
+
+// Wie lange nach Anpfiff zählt ein noch nicht beendetes Spiel als "live"?
+// Kanu-Polo-Matches dauern netto ~25 Min; mit Puffer für Pausen/Verzögerungen.
+const LIVE_WINDOW_MINUTES = 90;
+
+function matchScheduledTime(m){
+  if (!m || !m.time) return null;
+  const ymd = TOURNAMENT_DATES[m.day];
+  if (!ymd) return null;
+  // ISO-Datum mit explizitem +02:00 Offset (CEST). Robust unabhängig von der
+  // Zeitzone des Clients (Beamer / Handy / PC können alle anders konfiguriert sein).
+  const d = new Date(`${ymd}T${m.time}:00+02:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function deriveLiveByTime(snapshot){
+  if (!snapshot?.matches) return;
+  const now = Date.now();
+  for (const m of snapshot.matches) {
+    if (m.status !== 'next') continue;            // schon done/live? Server gewinnt
+    if (m.score?.a != null || m.score?.b != null) continue;  // Score da → kein next mehr
+    const scheduled = matchScheduledTime(m);
+    if (!scheduled) continue;
+    const minutesSinceStart = (now - scheduled.getTime()) / 60_000;
+    if (minutesSinceStart >= 0 && minutesSinceStart <= LIVE_WINDOW_MINUTES) {
+      m.status = 'live';
+    }
+  }
+}
+
 async function fetchData(){
   try {
     const res = await fetch('/api/data', { cache: 'default' });
     if (!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     state.snapshot = data.snapshot;
+    // Heuristik client-seitig anwenden (rechnet bei jedem Poll neu durch)
+    deriveLiveByTime(state.snapshot);
     // Merge statt überschreiben: lokale frisch gespeicherte Schiri-Einträge
     // überleben einen Poll, auch wenn das CDN noch eine alte /api/data-Antwort
     // serviert. Ohne diesen Merge wurden Schiri-Einsätze "verschwunden" weil
