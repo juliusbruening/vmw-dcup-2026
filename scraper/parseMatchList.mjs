@@ -49,7 +49,8 @@ export function parseMatchList(html, day) {
     // Match-Zeile: erwartete Spalten ab 0..8
     // [0] Status (img), [1] #, [2] Pitch, [3] Division, [4] Group,
     // [5] Team A (a), [6] Score, [7] Team B (a), [8] Jury (a oder "-")
-    const statusImg = $(cells[0]).find('img');
+    const $statusCell = $(cells[0]);
+    const statusImg = $statusCell.find('img').first();
     const matchNrTxt = cleanText($(cells[1]).text());
     const pitchTxt   = cleanText($(cells[2]).text());
     const divisionRaw = cleanText($(cells[3]).text());
@@ -68,18 +69,38 @@ export function parseMatchList(html, day) {
     const matchNr = Number(matchNrTxt.replace(/\D+/g, ''));
     if (!Number.isFinite(matchNr) || matchNr === 0) return;
 
-    const scoreCellText = cleanText($(cells[6]).text());
-    // Score-Spalte: "8 - 6" oder "- -" / "—"
+    // ─── SCORE ───────────────────────────────────────────────
+    // kayakers schreibt den Spielstand sowohl als data-Attribut UND als Text in die Zelle.
+    // Beobachtetes Markup (Team-Seite, gleicher Backend-Renderer):
+    //   <span data-goalsa="">...</span><span> - </span><span data-goalsb="">...</span>
+    // Für gespielte Spiele liegt der Wert im data-goalsa/-b-Attribut, der sichtbare
+    // Text bleibt teilweise "...", deshalb müssen wir bevorzugt das Attribut lesen.
     let scoreA = null, scoreB = null;
-    const ms = scoreCellText.match(/(\d+)\s*[-–]\s*(\d+)/);
-    if (ms) { scoreA = Number(ms[1]); scoreB = Number(ms[2]); }
+    const $scoreCell = $(cells[6]);
+    const goalsA = $scoreCell.find('[data-goalsa]').attr('data-goalsa');
+    const goalsB = $scoreCell.find('[data-goalsb]').attr('data-goalsb');
+    if (goalsA != null && /^\d+$/.test(goalsA)) scoreA = Number(goalsA);
+    if (goalsB != null && /^\d+$/.test(goalsB)) scoreB = Number(goalsB);
+    if (scoreA == null || scoreB == null) {
+      // Fallback: Text-Regex (für ältere Renderer-Varianten oder "8 - 6"-Klartext)
+      const scoreCellText = cleanText($scoreCell.text());
+      const ms = scoreCellText.match(/(\d+)\s*[-–]\s*(\d+)/);
+      if (ms) { scoreA = Number(ms[1]); scoreB = Number(ms[2]); }
+    }
 
-    // Status aus dem Title-Attribut
-    const statusTitle = (statusImg.attr('title') || '').toLowerCase();
-    let status = 'next';
-    if (statusTitle.includes('played') && !statusTitle.includes('not')) status = 'done';
-    else if (statusTitle.includes('progress') || statusTitle.includes('live')) status = 'live';
-    else if (statusTitle.includes('not played')) status = 'next';
+    // ─── STATUS ──────────────────────────────────────────────
+    // kayakers serviert den `title=`-Text in der Browser-Sprache der HTTP-Anfrage
+    // (Accept-Language). Hier laufen wir aus Deutschland → bekommen oft Deutsch.
+    // Deshalb müssen wir multilingual matchen UND zusätzlich data-status/img-src
+    // als sprach-unabhängige Fallbacks nutzen.
+    let status = detectMatchStatus($, $statusCell, statusImg);
+
+    // Sicherheitsnetz: Wenn ein numerischer Spielstand vorliegt, ist das Spiel
+    // mindestens beendet (Score wird vom Backend erst nach Schiri-Eintrag publiziert).
+    // Verhindert, dass beendete Spiele durch fehlerhafte Status-Erkennung in "next" hängenbleiben.
+    if (status === 'next' && scoreA != null && scoreB != null) {
+      status = 'done';
+    }
 
     // Division kompakt: doppelte Wiederholungen vom Markdown-Konverter sind im echten HTML kein Problem,
     // aber sicherheitshalber:
@@ -127,6 +148,52 @@ function compactDivision(s = '') {
     if (t.startsWith(candidate)) return candidate;
   }
   return t.split(/\s{2,}|\t/)[0] || t;
+}
+
+/**
+ * Sprach-unabhängige Status-Erkennung.
+ *
+ * Drei kombinierte Signale (vom verlässlichsten zum unsichersten):
+ *
+ *  1. data-status auf <div class="matchStatusIcon">  (kayakers-internes Schema)
+ *       0 = scheduled / nicht gespielt
+ *       1 = in progress / live
+ *       2 = played / beendet
+ *
+ *  2. Bildschema MatchStatusN.png im src-Attribut
+ *       Annahme entspricht data-status (1-basiert konnte ich nicht final verifizieren,
+ *       deshalb nur als Fallback genutzt — Titel ist sicherer).
+ *
+ *  3. title-Attribut des <img> — multilingual matching für DE+EN+NL+PL.
+ *
+ * Im DC2026-HTML kommt mind. eine dieser Signale immer durch.
+ */
+function detectMatchStatus($, $statusCell, statusImg) {
+  // 1) data-status — präziseste Quelle wenn vorhanden
+  const dataStatusEl = $statusCell.find('[data-status]').first();
+  const dataStatus = dataStatusEl.length ? dataStatusEl.attr('data-status') : null;
+
+  // 3) title (multilingual). Wichtig: das "not played"-Token muss VOR dem "played"-Token
+  // matchen, weil "Nicht gespielt" auch "Gespielt" als Substring enthält.
+  const title = (statusImg.attr('title') || '').toLowerCase();
+  const isNotPlayed =
+    /not played|nicht gespielt|niet gespeeld|nie zagrane|nie rozegrane/.test(title);
+  const isInProgress =
+    /in progress|wird gerade gespielt|wird gespielt|laufend|live|loopt|w toku|trwa/.test(title);
+  const isPlayed =
+    /(?:^|[^a-zäöü])(played|gespielt|gespeeld|zagrane|rozegrane)\b/.test(title) && !isNotPlayed;
+
+  if (isInProgress) return 'live';
+  if (isPlayed)     return 'done';
+  if (isNotPlayed)  return 'next';
+
+  // 2) data-status als sprach-unabhängiger Fallback
+  if (dataStatus === '1') return 'live';
+  if (dataStatus === '2') return 'done';
+  if (dataStatus === '0') return 'next';
+
+  // Standard: noch nicht gespielt
+  return 'next';
 }
 
 function inferDivisionCode(division = '') {
