@@ -800,6 +800,9 @@ async function saveRefs(nr){
     }
     const json = await res.json();
     state.refs = json.refs || {};
+    // Diesen Eintrag im "fresh window" markieren, damit der nächste
+    // /api/data-Poll ihn nicht durch eine stale CDN-Antwort wegputzt.
+    _markRefFresh(nr);
     btn.classList.add('ok'); btn.textContent = '✓ Gespeichert';
     if(players.length && card){
       card.classList.remove('empty');
@@ -909,13 +912,62 @@ setInterval(tickStale, 30_000);
 /* =========================================================
    DATEN-FETCH (Polling alle 60s)
    ========================================================= */
+
+// Refs, die wir gerade lokal gespeichert haben (matchNr → Zeitstempel-ms).
+// Solange ein Eintrag <FRESH_WINDOW_MS alt ist, darf ihn ein /api/data-Poll
+// NICHT mit stale CDN-Daten überschreiben. Schützt vor:
+//   1) Edge-Cache von /api/data → der nächste Poll bekommt evtl. eine Antwort
+//      von VOR unserem Save.
+//   2) eventually consistent Blob-Reads über Replicas.
+// Bugfix für "Schiri-Einsätze sind eingetragen und wieder verschwunden".
+const FRESH_WINDOW_MS = 90_000;
+const _localFreshRefs = new Map(); // String(matchNr) → ts of local save
+
+function _markRefFresh(nr){
+  _localFreshRefs.set(String(nr), Date.now());
+}
+
+function _mergeIncomingRefs(incoming){
+  incoming = incoming || {};
+  const now = Date.now();
+  const merged = { ...incoming };
+
+  for (const [nrStr, savedAt] of [..._localFreshRefs]) {
+    if (now - savedAt > FRESH_WINDOW_MS) {
+      _localFreshRefs.delete(nrStr); // alt genug — CDN hat ihn jetzt sicher gesehen
+      continue;
+    }
+    const localEntry = state.refs[nrStr] || state.refs[Number(nrStr)];
+    const incomingEntry = incoming[nrStr] || incoming[Number(nrStr)];
+
+    if (!localEntry) {
+      // Wir haben lokal gerade gelöscht → soll auch in der gemergten Map fehlen,
+      // selbst wenn das CDN den Eintrag noch in einer stale Antwort liefert.
+      delete merged[nrStr];
+      delete merged[Number(nrStr)];
+    } else {
+      const incomingTs = incomingEntry?.updatedAt ? Date.parse(incomingEntry.updatedAt) : 0;
+      const localTs    = localEntry.updatedAt ? Date.parse(localEntry.updatedAt) : savedAt;
+      if (!incomingEntry || incomingTs < localTs) {
+        // Unser frischer lokaler Stand gewinnt
+        merged[nrStr] = localEntry;
+      }
+    }
+  }
+  return merged;
+}
+
 async function fetchData(){
   try {
     const res = await fetch('/api/data', { cache: 'default' });
     if (!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     state.snapshot = data.snapshot;
-    state.refs = data.refereeAssignments || {};
+    // Merge statt überschreiben: lokale frisch gespeicherte Schiri-Einträge
+    // überleben einen Poll, auch wenn das CDN noch eine alte /api/data-Antwort
+    // serviert. Ohne diesen Merge wurden Schiri-Einsätze "verschwunden" weil
+    // die nächste Poll-Antwort sie nicht enthielt.
+    state.refs = _mergeIncomingRefs(data.refereeAssignments);
     state.lastFetchOk = Date.now();
     state.fetchError = null;
     renderActiveTab();

@@ -17,9 +17,13 @@ import { getStore } from '@netlify/blobs';
 export default async (req) => {
   try {
     const store = getStore('dc2026');
+    // Strong consistency speziell auf den Schiri-Einteilungen: nach einem
+    // POST /api/admin/refs darf das nicht durch eine stale Edge-Replica
+    // verzögert sein (Bug "Schiri-Einsätze verschwinden"). Der Snapshot
+    // ändert sich nur alle 15 Min und kann eventual consistent bleiben.
     const [snapshot, refs] = await Promise.all([
       store.get('snapshot.json', { type: 'json' }),
-      store.get('refereeAssignments.json', { type: 'json' }),
+      store.get('refereeAssignments.json', { type: 'json', consistency: 'strong' }),
     ]);
 
     const payload = {
@@ -32,12 +36,21 @@ export default async (req) => {
       status: 200,
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        // Browser: kurzer Cache (30s) — entlastet uns wenn ein Nutzer mehrfach pollt
-        'cache-control': 'public, max-age=30',
-        // Netlify Edge: 30s frisch + 5min stale-while-revalidate.
-        // Effekt: Function wird nur ~1× pro 30s global aufgerufen,
-        // egal wie viele Nutzer parallel die App offen haben.
-        'netlify-cdn-cache-control': 'public, s-maxage=30, stale-while-revalidate=300',
+        // Browser: minimal cachen (5s) — Polling holt sonst stale Schiri-Daten
+        'cache-control': 'public, max-age=5',
+        // Netlify Edge: 5s frisch + 60s stale-while-revalidate.
+        //
+        // Vorher: s-maxage=30. Das war für den Snapshot OK, hat aber bewirkt,
+        // dass nach einem POST /api/admin/refs der nächste /api/data-Poll bis
+        // zu 30s lang die alten Schiri-Einträge zurückgegeben hat → die App
+        // hat den frisch gespeicherten Eintrag im State überschrieben und er
+        // sah "verschwunden" aus. 5s ist der Kompromiss zwischen Skalierung
+        // (Function wird trotzdem nur ~1× pro 5s GLOBAL aufgerufen) und
+        // Frische der Trainer-Eingaben.
+        //
+        // Zusätzlich: Frontend mergt frisch gespeicherte Einträge gegen die
+        // Poll-Antwort (siehe app.js fetchData) — doppelte Sicherheit.
+        'netlify-cdn-cache-control': 'public, s-maxage=5, stale-while-revalidate=60',
       },
     });
   } catch (e) {

@@ -56,12 +56,14 @@ export function parseMatchList(html, day) {
     const divisionRaw = cleanText($(cells[3]).text());
     const groupTxt   = cleanText($(cells[4]).text());
 
-    const teamA_a = $(cells[5]).find('a').first();
-    const teamB_a = $(cells[7]).find('a').first();
+    const $cellA = $(cells[5]);
+    const $cellB = $(cells[7]);
+    const teamA_a = $cellA.find('a').first();
+    const teamB_a = $cellB.find('a').first();
     const jury_a  = $(cells[8]).find('a').first();
 
-    const teamA = cleanText(teamA_a.text() || $(cells[5]).text());
-    const teamB = cleanText(teamB_a.text() || $(cells[7]).text());
+    const teamA = cleanText(teamA_a.text() || $cellA.text());
+    const teamB = cleanText(teamB_a.text() || $cellB.text());
     const jury  = cleanText(jury_a.text()  || $(cells[8]).text());
 
     if (!teamA || !teamB) return; // wahrscheinlich keine Match-Zeile
@@ -70,22 +72,40 @@ export function parseMatchList(html, day) {
     if (!Number.isFinite(matchNr) || matchNr === 0) return;
 
     // ─── SCORE ───────────────────────────────────────────────
-    // kayakers schreibt den Spielstand sowohl als data-Attribut UND als Text in die Zelle.
-    // Beobachtetes Markup (Team-Seite, gleicher Backend-Renderer):
-    //   <span data-goalsa="">...</span><span> - </span><span data-goalsb="">...</span>
-    // Für gespielte Spiele liegt der Wert im data-goalsa/-b-Attribut, der sichtbare
-    // Text bleibt teilweise "...", deshalb müssen wir bevorzugt das Attribut lesen.
+    // kayakers rendert den Spielstand auf der MatchList-Seite je nach Layout-Variante
+    // in unterschiedlichen Zellen:
+    //
+    //   Variante A (älter / Team-Detailseiten-Renderer):
+    //     cells[6] enthält <span data-goalsa="4">…</span> - <span data-goalsb="2">…</span>
+    //
+    //   Variante B (aktuelles MatchList-Markup, beobachtet im echten Live-HTML):
+    //     cells[5] = "<a>Team A</a> 4"      ← Score nach dem Team-Link, gleiche Zelle
+    //     cells[6] = "-"                    ← nur Trenner
+    //     cells[7] = "<a>Team B</a> 2"
+    //
+    // Wir suchen defensiv in mehreren Quellen, von der zuverlässigsten zur
+    // weichesten Heuristik. Wichtig: numerische 0 ist gültig.
     let scoreA = null, scoreB = null;
-    const $scoreCell = $(cells[6]);
-    const goalsA = $scoreCell.find('[data-goalsa]').attr('data-goalsa');
-    const goalsB = $scoreCell.find('[data-goalsb]').attr('data-goalsb');
+
+    // 1) data-goalsa/-b irgendwo in der Zeile (deckt Variante A & Renderer-Mischformen ab)
+    const goalsA = $tr.find('[data-goalsa]').attr('data-goalsa');
+    const goalsB = $tr.find('[data-goalsb]').attr('data-goalsb');
     if (goalsA != null && /^\d+$/.test(goalsA)) scoreA = Number(goalsA);
     if (goalsB != null && /^\d+$/.test(goalsB)) scoreB = Number(goalsB);
+
+    // 2) Score nach dem Team-Link in der jeweiligen Team-Zelle (Variante B)
+    if (scoreA == null) scoreA = scoreFromTeamCell($cellA, teamA_a);
+    if (scoreB == null) scoreB = scoreFromTeamCell($cellB, teamB_a);
+
+    // 3) Klartext-Fallback: "4 - 2" in der Score-Zelle (oder in der ganzen Zeile)
     if (scoreA == null || scoreB == null) {
-      // Fallback: Text-Regex (für ältere Renderer-Varianten oder "8 - 6"-Klartext)
+      const $scoreCell = $(cells[6]);
       const scoreCellText = cleanText($scoreCell.text());
       const ms = scoreCellText.match(/(\d+)\s*[-–]\s*(\d+)/);
-      if (ms) { scoreA = Number(ms[1]); scoreB = Number(ms[2]); }
+      if (ms) {
+        if (scoreA == null) scoreA = Number(ms[1]);
+        if (scoreB == null) scoreB = Number(ms[2]);
+      }
     }
 
     // ─── STATUS ──────────────────────────────────────────────
@@ -153,47 +173,92 @@ function compactDivision(s = '') {
 /**
  * Sprach-unabhängige Status-Erkennung.
  *
- * Drei kombinierte Signale (vom verlässlichsten zum unsichersten):
+ * Zwei kombinierte Signale, vom verlässlichsten zum unsichersten:
  *
- *  1. data-status auf <div class="matchStatusIcon">  (kayakers-internes Schema)
- *       0 = scheduled / nicht gespielt
- *       1 = in progress / live
- *       2 = played / beendet
+ *  1. title-Attribut des <img> (multilingual matching).
+ *     Im echten DC2026-HTML aktuell Deutsch: "Beendet" / "Nicht gespielt" /
+ *     "Abgesagt". Andere Server-Lokalisierungen oder zukünftige Änderungen
+ *     decken wir per Regex mit EN/DE/NL/PL ab.
  *
- *  2. Bildschema MatchStatusN.png im src-Attribut
- *       Annahme entspricht data-status (1-basiert konnte ich nicht final verifizieren,
- *       deshalb nur als Fallback genutzt — Titel ist sicherer).
+ *  2. data-status-Attribut auf <div class="matchStatusIcon">.
+ *     Reale Werte (Mai 2026, gegen Live-HTML verifiziert):
+ *         0   → scheduled / nicht gespielt
+ *         10  → in progress (Annahme nach Mustererkennung)
+ *         100 → played / beendet
+ *         1000 → cancelled / abgesagt
+ *     Die alte Annahme im Code (0/1/2) war falsch — daher viele "beendet"-
+ *     Spiele bisher fälschlich als "next" gelandet sind.
  *
- *  3. title-Attribut des <img> — multilingual matching für DE+EN+NL+PL.
- *
- * Im DC2026-HTML kommt mind. eine dieser Signale immer durch.
+ * Reihenfolge: erst Title, weil er expliziter ist. data-status nur als
+ * Sprach-unabhängiger Fallback, falls Title fehlt.
  */
 function detectMatchStatus($, $statusCell, statusImg) {
-  // 1) data-status — präziseste Quelle wenn vorhanden
+  // 1) data-status — präziseste numerische Quelle, falls vorhanden
   const dataStatusEl = $statusCell.find('[data-status]').first();
   const dataStatus = dataStatusEl.length ? dataStatusEl.attr('data-status') : null;
 
-  // 3) title (multilingual). Wichtig: das "not played"-Token muss VOR dem "played"-Token
-  // matchen, weil "Nicht gespielt" auch "Gespielt" als Substring enthält.
+  // 2) title (multilingual). Reihenfolge wichtig: "not played" / "nicht gespielt"
+  // muss VOR "played" / "gespielt" greifen, weil sonst der Substring fälschlich
+  // als "gespielt" matched.
   const title = (statusImg.attr('title') || '').toLowerCase();
-  const isNotPlayed =
-    /not played|nicht gespielt|niet gespeeld|nie zagrane|nie rozegrane/.test(title);
-  const isInProgress =
-    /in progress|wird gerade gespielt|wird gespielt|laufend|live|loopt|w toku|trwa/.test(title);
-  const isPlayed =
-    /(?:^|[^a-zäöü])(played|gespielt|gespeeld|zagrane|rozegrane)\b/.test(title) && !isNotPlayed;
 
+  const isCancelled =
+    /cancelled|canceled|abgesagt|entfallen|abgebrochen|afgelast|odwo[łl]any/.test(title);
+  const isNotPlayed =
+    /not played|not yet played|scheduled|nicht gespielt|noch nicht gespielt|niet gespeeld|nie zagrane|nie rozegrane/.test(title);
+  const isInProgress =
+    /in progress|playing|currently|wird gerade gespielt|wird gespielt|läuft|laufend|live|loopt|bezig|w toku|trwa/.test(title);
+  const isPlayed =
+    /(?:^|[^a-zäöü])(played|finished|completed|ended|gespielt|beendet|gespeeld|afgelopen|zagrane|rozegrane|zako[ńn]czon[ey])\b/.test(title) && !isNotPlayed;
+
+  // Abgesagte Spiele behandeln wir wie "beendet" — sie sollen nicht in der
+  // "Kommende Spiele"-Liste auftauchen. (Das Frontend hat aktuell keine
+  // eigene Cancelled-Anzeige; lieber raus aus next als unsichtbar hängen.)
+  if (isCancelled)  return 'done';
   if (isInProgress) return 'live';
   if (isPlayed)     return 'done';
   if (isNotPlayed)  return 'next';
 
-  // 2) data-status als sprach-unabhängiger Fallback
-  if (dataStatus === '1') return 'live';
-  if (dataStatus === '2') return 'done';
-  if (dataStatus === '0') return 'next';
+  // 3) data-status als sprach-unabhängiger Fallback (echtes Schema 0/10/100/1000)
+  if (dataStatus === '1000') return 'done';   // cancelled → done
+  if (dataStatus === '100')  return 'done';   // beendet
+  if (dataStatus === '10')   return 'live';   // läuft (vermutet)
+  if (dataStatus === '1')    return 'live';   // legacy
+  if (dataStatus === '2')    return 'done';   // legacy
+  if (dataStatus === '0')    return 'next';
 
   // Standard: noch nicht gespielt
   return 'next';
+}
+
+/**
+ * Liest den Spielstand aus einer Team-Zelle, in der die Punktzahl als reiner
+ * Text NACH dem Team-Link steht. Beispiel:
+ *   <td><a href="...">VMW Berlin Men2</a> 4</td>
+ *
+ * Wir bauen aus den Text-Nodes der Zelle (ohne Anchor-Inhalt) zusammen und
+ * suchen die erste ganze Zahl. Robust gegenüber zusätzlichem Whitespace und
+ * Trenner-Strings wie "&nbsp;".
+ */
+function scoreFromTeamCell($cell, teamLink) {
+  if (!$cell || $cell.length === 0) return null;
+  const cellText = cleanText($cell.text());
+  const linkText = teamLink && teamLink.length ? cleanText(teamLink.text()) : '';
+  let rest = cellText;
+  if (linkText) {
+    // Erst exakten Substring entfernen (häufigster Fall), sonst case-insensitive ersetzen
+    const idx = rest.indexOf(linkText);
+    if (idx >= 0) {
+      rest = (rest.slice(0, idx) + rest.slice(idx + linkText.length)).trim();
+    } else {
+      try {
+        const safe = linkText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        rest = rest.replace(new RegExp(safe, 'i'), '').trim();
+      } catch { /* nichts */ }
+    }
+  }
+  const m = rest.match(/(?:^|\s)(\d+)(?:\s|$)/);
+  return m ? Number(m[1]) : null;
 }
 
 function inferDivisionCode(division = '') {
